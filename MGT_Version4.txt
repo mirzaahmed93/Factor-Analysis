@@ -1,0 +1,278 @@
+---
+title: "MGT 5360 Assignment: Question C"
+output: html_notebook
+---
+
+This R Notebook has been updated so you can see the R code and the relevant visuals (correlation matrix, scree plot, PCA/factor loadings and rotated factor solution). Open this file in RStudio and either run the chunks interactively or click "Knit" → "Knit to HTML" to generate the HTML notebook with both code and figures shown inline.
+
+Notes:
+- The code assumes your dataset is available in the R object FactorShops and that the variables are named Q08A..Q08V as in your original file.
+- Required packages are: psych, corrplot, ggplot2, tidyr. The setup chunk installs them if missing.
+- If you don't have the real dataset on hand, this notebook includes a small simulation chunk that creates a mock FactorShops dataset so you can knit and inspect the outputs. Remove or skip that chunk when you use your real data.
+
+```{r setup, echo=TRUE, message=FALSE, warning=FALSE}
+# Install required packages if missing
+pkgs <- c("psych", "corrplot", "ggplot2", "tidyr", "MASS")
+for(p in pkgs) if(!requireNamespace(p, quietly = TRUE)) install.packages(p)
+
+library(psych)     # for KMO, Bartlett, principal/fa
+library(corrplot)  # for correlation plot
+library(ggplot2)   # for nicer plots if required
+library(tidyr)     # for pivoting loadings
+# MASS is used only for simulation if needed
+
+# Chunk options for nicer output
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, fig.width = 7, fig.height = 5)
+```
+
+```{r create-sim-data-if-missing, echo=TRUE}
+# If you don't have FactorShops loaded, this creates a realistic dummy dataset
+# The chunk will be skipped if FactorShops already exists in the environment.
+if(!exists("FactorShops")) {
+  set.seed(2025)
+  library(MASS)
+  n <- 546
+  p <- 22
+  # Start with small off-block correlations
+  Sigma <- matrix(0.15, nrow = p, ncol = p)
+  diag(Sigma) <- 1
+  # Create stronger within-block covariances for plausible factor structure
+  # Blocks: 1-6 (recreation), 7-12 (facilities), 13-18 (experience), 19-22 (price/quality)
+  block_pairs <- list(1:6, 7:12, 13:18, 19:22)
+  for(b in block_pairs) {
+    Sigma[b, b] <- 0.6
+    diag(Sigma)[b] <- 1
+  }
+  # Small regularization to ensure positive-definiteness
+  Sigma <- Sigma + diag(rep(1e-6, p))
+  # Simulate multivariate normal then convert to 1-5 Likert-style
+  raw <- MASS::mvrnorm(n = n, mu = rep(0, p), Sigma = Sigma)
+  sim_df <- as.data.frame(apply(raw, 2, function(x) {
+    cuts <- quantile(x, probs = seq(0, 1, length.out = 6))
+    as.integer(cut(x, breaks = cuts, include.lowest = TRUE, labels = FALSE))
+  }))
+  # Name variables Q08A..Q08V and add Shop column
+  names(sim_df) <- paste0("Q08", toupper(letters[1:p]))
+  sim_df$Shop <- sample(c("Tesco","Sainsbury","Asda","Morrisons","Aldi","Lidl"), n, replace = TRUE)
+  FactorShops <- sim_df
+  message("Simulated FactorShops dataset created (n = ", n, "). Remove or skip this chunk when you use your real data.")
+} else {
+  message("FactorShops already exists in the environment; skipping simulation.")
+}
+```
+
+# Question C: '' The FactorShops data set shows a number of aspects of consumer shopping behaviour in Cardiff, Wales. Using the dataset, critically analyse what factors do consumers find important when selecting a supermarket''.
+
+# Background and purpose
+
+Factor Analysis (F.A) takes copious amounts of information (variables) and attempts to reduce this into simple variables with fewer variables. This is done via filtering out information that model does not require (Hutcheson,2019). F.A attempts to measure latent variables. These are variables that cannot be directly measured. However, different aspects of latent variables can be measured. F.A attempts to see if different variables are driven by similar underlying factors (Field et al.,2012).
+
+The F.A technique has 3 main uses (Field et al.,2012): 
+i)  Understanding structure of variable set  
+ii) Constructing a questionnaire to measure an underlying variable  
+iii) Reducing the dataset to a manageable size whilst attempting to retain as much of the original information as is practically possible.
+
+The FactorShops data shows observations of 22 variables. Perhaps the most obvious factors in choosing a store are quality and variety of goods and their relative price (Hutchenson and Moutinho,1998). The variables in the dataset are as follows: 
+
+Variable name  Description
+
+Shop:          Supermarket customer chooses:  
+q08a           Amount of non-grocery products  
+q08b           Availability of cash point facilities  
+q08c           Availability of express checkout counters  
+q08d           Availability of parent and baby facilities  
+q08e           Availability of petrol station  
+q08f           Availability of restaurants or cafeteria  
+q08g           Availability of loyalty discount scheme  
+q08h           Car parking facilities  
+q08I           Convenient location  
+q08j           Customer service and assistance facilities  
+q08k           Frequency of special promotions  
+q08l           Friendliness of staff  
+q08m           General atmosphere of the store  
+q08n           Help with packing at checkout  
+q08o           High proportion of “own brand” products  
+q08p           High proportion of “value range” products  
+q08q           Length of queues at counters and checkouts  
+q08r           Low prices  
+q08s           Quality of fresh produce  
+q08t           Quality of packaged goods  
+q08u           Quality of trolleys  
+q08v           Transport provided
+
+Although price competition and quality are important, store location and the retail store environment (Zhou and Wong, 2003) also significantly impact store choice. Customer satisfaction is considered a latent variable influenced by observed items (Cronin and Taylor,1992; Wu,2013).
+
+Below we perform correlation inspection, tests of suitability (Bartlett, KMO), PCA for component extraction, and a rotated factor solution with visuals. Use the simulation only to check the notebook structure if you don't have the real data.
+
+# Data preparation
+
+Specify the variable names (as in your original document) and create a cleaned data matrix for the analysis. We use complete-case rows (na.omit) for the PCA / factor analysis steps below so n used in Bartlett/KMO matches the data used in PCA/fa.
+
+```{r data-prep, echo=TRUE}
+vars <- c("Q08A","Q08B","Q08C","Q08D","Q08E","Q08F","Q08G","Q08H",
+          "Q08I","Q08J","Q08K","Q08L","Q08M","Q08N","Q08O","Q08P",
+          "Q08Q","Q08R","Q08S","Q08T","Q08U","Q08V")
+
+# Check that FactorShops exists
+if(!exists("FactorShops")) stop("FactorShops dataset not found in the environment. Load it before running this notebook.")
+
+# Subset and remove rows with missing values for these items
+data_sub <- FactorShops[, vars]
+data_complete <- na.omit(data_sub)      # we'll use only complete cases for PCA / FA here
+n_complete <- nrow(data_complete)
+cat("Complete-case rows used for PCA/FA:", n_complete, "\n")
+
+# Correlation matrix used throughout
+FactorMatrix <- cor(data_complete, use = "pairwise.complete.obs")
+```
+
+# Correlation matrix and visualization
+
+```{r corrplot, echo=TRUE, fig.width=8, fig.height=6}
+print(round(FactorMatrix, 2))   # numeric view
+
+# Visualize correlation matrix
+corrplot::corrplot(FactorMatrix, method = "color", type = "upper", 
+                   tl.cex = 0.7, tl.srt = 45, addCoef.col = "black", number.cex = 0.6)
+```
+
+# Bartlett's test, KMO and determinant
+
+These tests check suitability of the data for factor analysis.
+
+```{r suitability-tests, echo=TRUE}
+# Bartlett's test of sphericity
+bartlett_res <- cortest.bartlett(FactorMatrix, n = n_complete)
+print(bartlett_res)
+
+# KMO measure of sampling adequacy
+kmo_res <- KMO(FactorMatrix)
+print(kmo_res)   # overall and individual MSA values
+
+# Determinant of the correlation matrix
+det_val <- det(FactorMatrix)
+cat("Determinant of correlation matrix:", det_val, "\n")
+```
+
+# Principal Component Analysis (PCA) — unrotated
+
+We run PCA (princomp) on the complete-case data using correlations (standardised variables). We'll examine component variances (eigenvalues), loadings and a scree plot to decide how many components to retain.
+
+```{r pca-unrotated, echo=TRUE, fig.width=7, fig.height=5}
+# PCA using princomp (on standardized variables, cor = TRUE)
+pc <- princomp(data_complete, cor = TRUE)
+
+cat("Component variances (eigenvalues):\n")
+print(pc$sd^2)
+
+cat("\nProportion of variance explained:\n")
+print(summary(pc)$importance)
+
+cat("\nLoadings (showing absolute >= 0.30):\n")
+print(loadings(pc), cutoff = 0.30)
+
+# Scree plot
+screeplot(pc, type = "lines", main = "Scree plot (princomp)")
+```
+
+# Determining number of factors
+
+You can use Kaiser's criterion (eigenvalues > 1), Cattell's scree test, Joliffe's alternative (eigenvalues > 0.7), or parallel analysis. Example of parallel analysis (uncomment to run):
+
+```{r parallel-analysis, echo=TRUE, eval=FALSE}
+# psych::fa.parallel(data_complete, fa = "pc", n.iter = 100, show.legend = TRUE)
+```
+
+# Factor analysis with rotation (suggested 4-factor solution)
+
+Based on your write-up you examined several possibilities (6 factors by Kaiser >1; possibly fewer by scree). Here we demonstrate extracting 4 factors and performing varimax rotation using psych::principal. Change nfactors to 3,4,6, etc. to explore alternatives.
+
+```{r fa-rotated, echo=TRUE}
+# Choose number of factors to extract (change as needed)
+nf <- 4
+
+# principal() will standardize variables by default (if raw data supplied)
+fa_res <- principal(data_complete, nfactors = nf, rotate = "varimax", scores = TRUE)
+print(fa_res, cutoff = 0.30, digits = 3)
+
+# Factor scores added back to the original complete-case data (optional)
+scores <- fa_res$scores
+head(scores)
+```
+
+# Interpreting results and plotting loadings (simple biplot-like visualization)
+
+Plot the rotated loadings for inspection.
+
+```{r loadings-plot, echo=TRUE, fig.width=8, fig.height=6}
+# Extract rotated loadings matrix
+loadings_mat <- unclass(fa_res$loadings)[, 1:nf]
+
+# Convert to data.frame for ggplot
+load_df <- as.data.frame(loadings_mat)
+load_df$variable <- rownames(load_df)
+
+# Attempt to pivot; column names differ depending on psych version; fallback to first nf columns
+if(any(grepl("^RC", names(load_df)))) {
+  load_long <- tidyr::pivot_longer(load_df, cols = starts_with("RC"), names_to = "Factor", values_to = "Loading")
+} else {
+  load_long <- tidyr::pivot_longer(load_df, cols = 1:nf, names_to = "Factor", values_to = "Loading")
+}
+
+ggplot(load_long, aes(x = variable, y = Loading, fill = Factor)) +
+  geom_col(position = position_dodge(width = 0.9)) +
+  coord_flip() +
+  labs(title = paste("Rotated factor loadings (", nf, " factors)", sep = "")) +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 9))
+```
+
+# Saving figures (optional)
+
+If you want separate image files saved to disk, add code like the following (uncomment to run):
+
+```{r save-figs, eval=FALSE}
+# ggsave("rotated_loadings.png", width = 10, height = 7)
+```
+
+# How to run / view results
+
+1. Open this Rmd file in RStudio.  
+2. If you want to preview the notebook immediately but don't have the real dataset, keep the simulation chunk enabled (it will create a simulated FactorShops dataset). When you have the real data, remove or comment out that chunk.  
+3. Run chunks interactively (Ctrl+Alt+C/Cmd+Option+C) or click "Knit" -> "Knit to HTML". The HTML notebook will show both the R code and the visual outputs (plots and printed matrices).  
+
+# Suggestions & troubleshooting
+
+- If you prefer to use all available cases per correlation (pairwise) instead of complete-case PCA, you can adapt commands. The code supplied uses na.omit to ensure tests like Bartlett & KMO use consistent n.  
+- If you want a confirmatory factor analysis or a different extraction method (e.g., maximum likelihood), consider psych::fa(..., fm = "ml") or the lavaan package for CFA.  
+- To explore the number of factors more systematically try parallel analysis: psych::fa.parallel(data_complete, fa = "pc", n.iter = 100, show.legend = TRUE).
+
+# References / Bibliography
+
+Cattell, R.B. (1966) "The scree test for the number of factors". Multivariate Behavioural Research, Vol.1(1), PP.245-276.
+
+Cronin, J.Jr. and Taylor, S.A. (1992) "Measuring Service Quality: A Re-examination and Extension". Journal of Marketing, Vol.56(3), PP.55-68.
+
+Demoulina, N. and Willems,K.B. (2019) "Servicescape irritants and customer satisfaction: The moderating role of shopping motives and involvement". Journal of Business Research, Vol.104(1), PP.295-306.
+
+Field, A., Miles, J. and Field, Z. (2012) "DISCOVERING STATISTICS USING R" (1st edition). London: SAGE Publications Ltd.
+
+Hutcheson, G. (2019) "APPLIED MULTIVARIATE ANALYSIS: A System of Analysis using R, the R-studio and the R-commander" (Online). Available at: http://www.research-training.net/index.php?option=com_content&view=article&id=41&Itemid=37 (Last accessed: 24/04/2020).
+
+Hutcheson, G.D. and Moutinho, L. (1998) "Measuring Preferred Store Satisfaction Using Consumer Choice Criteria as a Mediating Factor". Journal of Marketing Management, Vol.14(7), PP.705-720.
+
+Hutcheson, G.D. and Sofrinou,N. (1999) "The multivariate social scientist". London : SAGE Publications Ltd.
+
+Joliffe, I.T (1986) "Principal Component Analysis". New York: Springer.
+
+Kaiser,K.F. (1970) "An index for factorial simplicity". Psychometrika, Vol.39(1), PP.31-36.
+
+Kerin, R.A., Jain, A. and Howard, D.J. (1992) "Store shopping experience and consumer price-quality-value perceptions". Journal of Retailing, Vol.68(4), PP.376-397.
+
+Johnson, M. D. and Fornell, C. (1991) "A Framework for Comparing Customer Satisfaction Across Individuals and Product Categories", Journal of Economic Psychology, Vol.12(2), PP.267-287.
+
+Spies, K., Hesse, F. and Loesch, K. (1997) "Store atmosphere, mood and purchasing behavior". International Journal of Research in Marketing, Vol.14(1), PP.1-17.
+
+Wu, I.L. (2013) "The antecedents of customer satisfaction and its link to complaint intentions in online shopping: An integration of justice, technology, and trust". International Journal of Information Management, Volume 33(1), PP.166-176.
+
+Zhou, L. and Wong, A. (2003) "Consumer impulse buying and in-store stimuli in Chinese supermarkets". Journal of International Consumer Marketing, Vol.16(2), PP.37-53.
