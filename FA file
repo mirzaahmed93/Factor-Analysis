@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Factor Analysis — Interactive Visuals (Simulated)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; margin: 20px; }
+    h1 { margin-bottom: 0.2rem; }
+    p.lead { margin-top: 0; color: #444; }
+    .plot { margin-top: 18px; }
+    .row { display: flex; gap: 20px; flex-wrap: wrap; }
+    .col { flex: 1 1 600px; min-width: 320px; }
+    footer { margin-top: 30px; color: #666; font-size: 0.9rem; }
+    .note { font-size: 0.9rem; color: #333; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Factor Analysis — Interactive Visuals (Simulated)</h1>
+  <p class="lead">This page simulates the FactorShops structure and displays an interactive correlation heatmap and rotated factor-style loadings. It is a browser-only workaround so you can view visuals without running R.</p>
+
+  <div class="note">Variables: Q08A .. Q08V (22 variables). Blocks: [Q08A..Q08F], [Q08G..Q08L], [Q08M..Q08R], [Q08S..Q08V]</div>
+
+  <div class="row">
+    <div class="col">
+      <h3>Correlation matrix (heatmap)</h3>
+      <div id="heatmap" class="plot" style="height:680px;"></div>
+    </div>
+
+    <div class="col">
+      <h3>Rotated factor loadings (simulated)</h3>
+      <div id="loadings" class="plot" style="height:680px;"></div>
+    </div>
+  </div>
+
+  <footer>
+    <div>Source: original R notebook converted into an interactive HTML simulation. This page uses simulated data to reproduce the structure and visuals in the R notebook. If you want R-rendered output, fix the GitHub Action or use R locally to render FactorAnalysisShopping.Rmd.</div>
+  </footer>
+
+  <script>
+    // Variable names
+    const vars = Array.from({length:22}, (_,i) => 'Q08' + String.fromCharCode(65 + i));
+
+    // Blocks
+    const blocks = [
+      {name: 'Recreation', idx: [0,1,2,3,4,5]},
+      {name: 'Facilities', idx: [6,7,8,9,10,11]},
+      {name: 'Experience', idx: [12,13,14,15,16,17]},
+      {name: 'Price/Quality', idx: [18,19,20,21]}
+    ];
+
+    // Create correlation matrix with block structure
+    function buildCorrMatrix(p, blocks) {
+      const mat = Array.from({length:p}, () => Array.from({length:p}, () => 0.15));
+      for (let i=0;i<p;i++) mat[i][i] = 1.0;
+      blocks.forEach(block => {
+        const strength = 0.6; // within-block correlation
+        block.idx.forEach(i => {
+          block.idx.forEach(j => {
+            mat[i][j] = (i===j) ? 1.0 : strength + (Math.random()-0.5)*0.06;
+          });
+        });
+      });
+      // Add small symmetric noise
+      for (let i=0;i<p;i++) {
+        for (let j=i+1;j<p;j++) {
+          const noise = (Math.random()-0.5)*0.04;
+          mat[i][j] = Math.max(-0.99, Math.min(0.99, mat[i][j] + noise));
+          mat[j][i] = mat[i][j];
+        }
+      }
+      return mat;
+    }
+
+    const corr = buildCorrMatrix(vars.length, blocks);
+
+    // Heatmap trace
+    const heatmapTrace = {
+      z: corr,
+      x: vars,
+      y: vars,
+      type: 'heatmap',
+      colorscale: [
+        [0, '#3b4cc0'],
+        [0.25, '#8fb0ff'],
+        [0.5, '#ffffff'],
+        [0.75, '#ffb38f'],
+        [1.0, '#b33b3b']
+      ],
+      zmin: -1,
+      zmax: 1,
+      colorbar: {title: 'r', titleside: 'right'}
+    };
+
+    const heatLayout = {
+      margin: {l:120, r:80, t:60, b:120},
+      xaxis: {tickangle: -45},
+      title: 'Correlation matrix (simulated)'
+    };
+
+    Plotly.newPlot('heatmap', [heatmapTrace], heatLayout, {responsive:true});
+
+    // Simulate "rotated loadings" consistent with blocks
+    function simulateLoadings(vars, blocks, nf) {
+      // returns array of nf arrays of loadings per variable
+      const p = vars.length;
+      const loadings = Array.from({length:nf}, () => Array.from({length:p}, () => 0));
+      // For each variable:
+      for (let v=0; v<p; v++) {
+        // find block index
+        let bidx = 0;
+        for (let b=0;b<blocks.length;b++) {
+          if (blocks[b].idx.includes(v)) { bidx = b; break; }
+        }
+        for (let f=0; f<nf; f++) {
+          // if factor corresponds to block, give larger loading
+          const base = (f === bidx) ? (0.55 + Math.random()*0.35) : (Math.random()*0.25);
+          loadings[f][v] = +(base * (Math.random()*0.2 + 0.9)).toFixed(3);
+        }
+        // Optionally make one dominant factor negative occasionally (not necessary here)
+      }
+      return loadings;
+    }
+
+    const nf = 4;
+    const loads = simulateLoadings(vars, blocks, nf);
+
+    // Create grouped horizontal bar chart: one trace per factor
+    const traces = [];
+    const factorNames = ['Factor 1','Factor 2','Factor 3','Factor 4'];
+    for (let f=0; f<nf; f++) {
+      traces.push({
+        x: loads[f],
+        y: vars,
+        name: factorNames[f],
+        type: 'bar',
+        orientation: 'h',
+        marker: {line: {width: 0.5}},
+      });
+    }
+
+    const loadLayout = {
+      barmode: 'group',
+      height: 680,
+      margin: {l:120, r:60, t:50, b:80},
+      xaxis: {title: 'Loading (simulated)'},
+      yaxis: {autorange: 'reversed'}, // so Q08A is top
+      title: 'Simulated rotated factor loadings (grouped by factor)'
+    };
+
+    Plotly.newPlot('loadings', traces, loadLayout, {responsive:true});
+
+  </script>
+</body>
+</html>
