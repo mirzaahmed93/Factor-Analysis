@@ -1,14 +1,7 @@
 ---
-title: "MGT 5360 Assignment: Question C"
+title: "Factor Analysis shopping exercise"
 output: html_notebook
 ---
-
-This R Notebook has been updated so you can see the R code and the relevant visuals (correlation matrix, scree plot, PCA/factor loadings and rotated factor solution). Open this file in RStudio and eit...
-
-Notes:
-- The code assumes your dataset is available in the R object FactorShops and that the variables are named Q08A..Q08V as in your original file.
-- Required packages are: psych, corrplot, ggplot2, tidyr. The setup chunk installs them if missing.
-- If you don't have the real dataset on hand, this notebook includes a small simulation chunk that creates a mock FactorShops dataset so you can knit and inspect the outputs. Remove or skip that chunk...
 
 ```{r setup, echo=TRUE, message=FALSE, warning=FALSE}
 # Install required packages if missing
@@ -26,7 +19,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, fig.width =
 ```
 
 ```{r create-sim-data-if-missing, echo=TRUE}
-# If you don't have FactorShops loaded, this creates a realistic dummy dataset
+# This creates a realistic dummy dataset
 # The chunk will be skipped if FactorShops already exists in the environment.
 if(!exists("FactorShops")) {
   set.seed(2025)
@@ -61,7 +54,7 @@ if(!exists("FactorShops")) {
 }
 ```
 
-# Question C: '' The FactorShops data set shows a number of aspects of consumer shopping behaviour in Cardiff, Wales. Using the dataset, critically analyse what factors do consumers find important whe...
+# Question: '' The FactorShops data set shows a number of aspects of consumer shopping behaviour in Cardiff, Wales. Using the dataset, critically analyse what factors do consumers find important whe...
 
 # Background and purpose
 
@@ -106,7 +99,7 @@ Below we perform correlation inspection, tests of suitability (Bartlett, KMO), P
 
 # Data preparation
 
-Specify the variable names (as in your original document) and create a cleaned data matrix for the analysis. We use complete-case rows (na.omit) for the PCA / factor analysis steps below so n used in ...
+Specify the variable names (as in your original document) and create a cleaned data matrix for the analysis. Use complete-case rows (na.omit) for the PCA / factor analysis steps below so n used in ...
 
 ```{r data-prep, echo=TRUE}
 vars <- c("Q08A","Q08B","Q08C","Q08D","Q08E","Q08F","Q08G","Q08H",
@@ -185,7 +178,7 @@ You can use Kaiser's criterion (eigenvalues > 1), Cattell's scree test, Joliffe'
 
 # Factor analysis with rotation (suggested 4-factor solution)
 
-Based on your write-up you examined several possibilities (6 factors by Kaiser >1; possibly fewer by scree). Here we demonstrate extracting 4 factors and performing varimax rotation using psych::principal...
+Demonstrate extracting 4 factors and performing varimax rotation using psych::principal...
 
 ```{r fa-rotated, echo=TRUE}
 # Choose number of factors to extract (change as needed)
@@ -229,7 +222,6 @@ ggplot(load_long, aes(x = variable, y = Loading, fill = Factor)) +
 
 # Saving figures (optional)
 
-If you want separate image files saved to disk, add code like the following (uncomment to run):
 
 ```{r save-figs, eval=FALSE}
 # ggsave("rotated_loadings.png", width = 10, height = 7)
