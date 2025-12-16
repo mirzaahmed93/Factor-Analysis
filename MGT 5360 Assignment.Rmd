@@ -1,0 +1,232 @@
+---
+title: "MGT 5360 Assignment: Question C"
+output: html_notebook
+---
+
+# Question C: '' The FactorShops data set shows a number of aspects of consumer shopping behaviour in Cardiff,Wales. Using the dataset, critically analyse what factors do consumers find important when selecting a supermarket''.
+
+
+# Factor Analysis (F.A) takes copious amounts of information (variables) and attempts to reduce this into simple variables with fewer variables. This is done via filtering out information that model does not require (Hutcheson,2019).F.A attempts to measure latent variables. These are variables that cannot be directly measured. However, different aspects of latent variables can be measured. F.A attempts to see if different variables are driven by similar underlying factors (Field et al.,2012).
+
+# The F.A technique has 3 main uses (Field et al.,2012): 
+# i)  Understanding structure of variable set
+# ii) Constructing a questionnaire to measure an underlying variable 
+# iii)Reducing the dataset to a managemable size whilst attempting to retain as much of the orgiinal information as is practically possible.
+
+# The information of the Factor Shops Dataset shows 546 observations of 22 variables. Perhaps the most obvious factors in choosing a store is the quality and variety of goods and their relative price (Hutchenson and Moutinho,1998). The variables in the dataset are as follows: 
+
+# Variable name  Description
+
+# Shop:          Supermarket customer chooses:
+# q08a           Amount of non-grocery products
+# q08b           Availability of cash point facilities
+# q08c           Availability of express checkout counters
+# q08d           Availability of parent and baby facilities
+# q08e           Availability of petrol station
+# q08f           Availability of restaurants or cafeteria
+# q08g           Availability of loyalty discount scheme
+# q08h           Car parking facilities
+# q08I           Convenient location
+# q08j           Customer service and assistance facilities
+# q08k           Frequency of special promotions
+# q08l           Friendliness of staff
+# q08m           General atmosphere of the store
+# q08n           Help with packing at checkout
+# q08o           High proportion of “own brand” products
+# q08p           High proportion of “value range” products
+# q08q           Length of queues at counters and checkouts
+# q08r           Low prices
+# q08s           Quality of fresh produce
+# q08t           Quality of packaged goods
+# q08u           Quality of trolleys
+# q08v           Transport provided
+
+# However, it is apparent that price competition and quality are not the only components to increasing a consumer base and thus market share (Johnson et al., 1991). Store location can be a factor of singificance to consumer choice, owing to the popularity of the car. By this it is meant that actual distance to the supermarket is not the key issue but faciltiies around car accessability. Examples of this are the provision of car parking, adequate road access and facilities for cars.
+
+# Moreover, the importance of the retail store environment (Zhou and Wong, 2003) with the store environment also significantly impacting sales, product evaluations and ultimately, customer satisfaction. Research indicates attitudes towards the store environment are sometimes more important in determining store choice than the perceptions towards the actual goods themself. 
+
+# Although, a customer’s satisfaction and mood can significantly affect purchasing behaviour. Satisfied consumers spontaneously spend more on products (Spies et al., 1997). Indeed, store environment may provide insughts to comsumers about merchandise and service quality. These have been identified as critical components in the consumer’s decision-making process (Kerin et al., 1992). 
+
+# Additionally, customer satisfaction has been identified as being of grand importance. Much of the literature taking as given the notion that satisfaction is a proxy for store repatronising behaviour(Wu,2013).  As Cronin and Taylor (1992) debate, customer satisfaction is affected not only by the quality of what the customer receives, but also by price and convenience. 
+# Whist customer satisfaction may be important, it should be noted that costs of dissatisfaction can outweigh the benefits of satisfaction as exceeding customer expectations will merely retain current customers whilst dissatisfaction is likely to result in customers going elsewhere (Cronin and Taylor,1992). 
+
+# It is customer satisfaction that can be considered a latent varaible. Demoulins and Willems(2019) state that some of the well-established regularities of customer satsifaction  are theoretically linked. COmpelxity of basket-level purchasing data of households, data-anaylsts are actively engaged in the development of statistical models and econometric models of multi-category choice behaviour of households. It is this compelxity of customer staisfaction being intangible and therefore relying on other factors to examine motivation of customer importance in a supermarket.
+
+# First, correlations between variables needs to be conducted. The existence of large cluster of correlation co-efficients between varaible subsets implies that those variables could be measuring aspects of the same underlying dimension. The underlying dimensions are known as 'factors' (Field et al.,2012). F.A achieves efficiency explaining the maximum amount of variance via a correlation matrix using the samllest number of explanatory constructs.
+
+```{r}
+ cor(FactorShops[,c("Q08A","Q08B","Q08C","Q08D","Q08E","Q08F","Q08G","Q08H",
+  "Q08I","Q08J","Q08K","Q08L","Q08M","Q08N","Q08O","Q08P","Q08Q","Q08R",
+  "Q08S","Q08T","Q08U","Q08V")], use="complete")
+```
+
+# Looking at the output above, relationships amongst several variables appear to be correlating together. Looking at the variables we can see a group of factors correlated into 4 categories:
+#i)  Recreational Facilities at Supermarkets
+#ii) Availability of additional facilities 
+#iii)Experience of shopping
+#iv) Price of products and facilities
+
+# Output  above shows correlations amongst the different variables. Correlations of .3 or greater are looked at due to multi-collinearity issues. Although,a Barrlet's test can also be run to look at assumptions of sphericity. This test essentially looks at whether covariance matrix (above) is proportional to an identity matrix. The Barrlet's test is computed below.
+
+```{r}
+cortest.bartlett( FactorMatrix, n=546 )
+```
+
+# For F.A to be significant, some relationship between variables is required. A significance of value less than 0.5 is therefore needed to illustrate that. This will tell us if the R-matrix (FactorMatrix) is not an identity matrix and some relationships between the variables can be included in the analysis. For this data set, Bartlett's test is highly signficant at .001 level. F.A is therefore appropiate in this exercise.
+
+# Although, correlation co-efficients fluctuate from sample and reliability of F.A is dependent on factor size. The Kaiser-Meyer- Olkin (KMO) measure of sampling adequacy (Kaiser,1970) helps indicate reliability of the sample. KMO can be calculated for individual or multiple variables. KMO test represents the ratio of squared correlations between variables to the squared partial correlation between variables (Field et al.,2012). KMO values range between 0 and 1. Value of 0 indicates the sum of partial correlation is large relative to the sum of correlations with a diffusion in the pattern of correlations (F.A is unlikely to be appropiate in these instances).Values close to 1 indicate patterns of correlations are relatively compact so F.A should yield meaningful results that are reliable.
+
+```{r}
+KMO(FactorMatrix)
+```
+
+# The results for KMO test conclude that for this dataset, the overall value of .81 which would be described as 'great' (Hutcheson and Sofroniou,1999). This result would apply confidence that both sample size and data are adequate for F.A. Under the overall MSA values for individual variables are produced by the KMO function (above). Values for individual variables should be above 0.5. All of the individual items are above 0.5 and are therefore part of the factor solution.This demonstrates the reliability of F.A. 
+
+# The determinant of the correlation matrix is required. Again, this is obtained to see if the determinate variables will caues any issues in the analysis itself.
+
+```{r}
+det(FactorMatrix)
+```
+
+# Looking at the command above, the value of 0.0008 is greater than the value of 0.00001, this means the variables do not appear to problematic for the analysis itself. This means none of the variables are needed to be removed as none are problematic. 
+
+# Principal Component Analysis (PCA) will be used to obtain factor extractions for this dataset in R. PCA identifies linear combinations of observed variables with the first principle component (pc1). Pc1 is the linear combination of variables that accounts for the largest amount of variance in the sample. The second P.C (pc2) is the linear combination of variables uncorrelated to pc1 that accounts for the remaining variation in the data (Hutcheson,2019). Ultimately PCA transforms a set of correlated variables into uncorrelated components.
+
+# PCA is concerned mainly with establishing which linear components exist within the data and how a particular variable may contribute to that component.In PCA, a correlation matrix is taken and variates is calculated.There are no groups of observaitons and thus, the number of variates calculated will always equal the number of variables measured.
+
+```{r}
+local({
+  .PC <- 
+  princomp(~Q08A+Q08B+Q08C+Q08D+Q08E+Q08F+Q08G+Q08H+Q08I+Q08J+Q08K+Q08L+Q08M+Q08N+Q08O+Q08P+Q08Q+Q08R+Q08S+Q08T+Q08U+Q08V,
+   cor=TRUE, data=FactorShops)
+  cat("\nComponent loadings:\n")
+  print(unclass(loadings(.PC)))
+  cat("\nComponent variances:\n")
+  print(.PC$sd^2)
+  cat("\n")
+  print(summary(.PC))
+  screeplot(.PC)
+})
+```
+
+# The code above is broken down into the command itself (princomp) which calculates the PCA for the dataset (Hutcheson,2019). The command creates a PCA model by specifying the dataframe of 'FactorShops' itself with 3 parts: 
+# i)   Nfactors: this highlights the number of factors/components needed to be extracted. If not specified, then one component is extracted
+# ii)  Rotate: specifies a method of factor rotation (will be covered later in this document, please see line#   for reference). If method is not declared, then default method of 'variamx' rotation is utilised (Field et al.,2012)
+# iii) Scores: allows factor scores to be obtained (''TRUE'') or not (''FALSE''). Default setting utilised will be false.
+# At this stage, factor rotation is not considered. Looking at the PCA loadings, we can see that 22 variables present will mean the 'Component Variances' will also add up to 22. The number of components and varaibles must be the same which can be seen in the Output above (look at 'Component Variances' section).  
+
+# Nonetheless, by extracting as many factors as there are variables, inspection of eigenvalues and proceed with making decsions about which factors to extract.Eigenvalues (Field,2012) highlight the amount of variance in the dataset that can be accounted for by the particular component. The eignevalues associated with each factor represent variance that can be explained by its particular linear component. The PCA anaylsis further displays eigenvalues via the proportion of variance. Looking at 'Comp.1' in 'Importance of Components' section it can be understood that the first component explains 25.5% of the total variance present. Studying the analysis of the importance of components it is apparent that the first few factors explain relatively large amounts of variation in the data.
+
+# Looking at the eigenvalues, we can see that the first 6 components have values greater than 1. This highlights that a value of 1.0 or greater means the same amount of variance can be explained by the single variable via Kaiser's criterion (1970) (please refer to 'Component Variances' section). Using the first 6 components can be further reinforced using a 'scree plot' (Cattell,1966). The scree plot graphs plots each eigenvalue (y-axis) against the factor it is associated with (x-axis). Graphing the eigenvalues will depict the relative importance of each factor. The pattern usually follows certian factors in the beggining having high values with many factors having low values. Cattell (1966) reasons that the cut off point will be apparent at the inflexion point of the graph itself. The 'scree plot' is available in the code above. 
+#Running the analysis and noting the scree plot, it can be seen that a significant amount of the drop comes after component 3 to component 4 . However using the first 6 components, approximately 60% of the variation in data can be explained by the 6 components ((5.63+ 2.05+ 1.76+ 1.30+ 1.250+ 1.15)/22*100). It must be stressed that the factors retained (Field et al., 2012) will not explain all variance as infromation has been discarded and will reflect the common variance in the data.
+
+# However,Joliffe (1986) contends that using Kaiser's criterion score of 1 is too high of a benchmark of retaining eigenvalues for. Joliffe states using values of 0.7 or higher would be sufficent for factor extraction methods in PCA. Using this criterion would mean that the first 10 components would be utilised. The criterion adopted by Joliffe would mean that  ((5.63+ 2.05+ 1.76+ 1.30+ 1.25+ 1.15+ 0.98+ 0.84+ 0.80+ 0.76)/22*100)) approximately 75% of all variation of the data would be explained by the first 10 components. Looking at the proportion of variance for these components individually (0.2557129, 0.09311088, 0.08010006, 0.05906472, 0.05686044, 0.05227521, 0.04462003, 0.03838884, 0.03658174, 0.03458866) which can be found in the analysis output above in the 'Importance of components' section looking at the 'proportion of variance'. Using Joliffe's criterion as an alternative would allow for more of the variance in data to be accounted for. 
+
+# Now that it has been comprehended that after 6 components it will be difficult to interpret as the values become indistinguishable after this point, analysis can be conducted with the number of factors required.  
+
+```{r}
+local({
+  .PC <- princomp(~PC1+PC2+PC3+PC4+PC5+PC6+Q08A+Q08B+Q08C+Q08D+Q08E+Q08F+Q08G+Q08H+Q08I+Q08J+Q08K+Q08L+Q08M+Q08N+Q08O+Q08P+Q08Q+Q08R+Q08S+Q08T+Q08U+Q08V, cor=TRUE, 
+  data=FactorShops)
+  cat("\nComponent loadings:\n")
+  print(unclass(loadings(.PC)))
+  cat("\nComponent variances:\n")
+  print(.PC$sd^2)
+  cat("\n")
+  print(summary(.PC))
+  FactorShops <<- within(FactorShops, {
+    PC6 <- .PC$scores[,6]
+    PC5 <- .PC$scores[,5]
+    PC4 <- .PC$scores[,4]
+    PC3 <- .PC$scores[,3]
+    PC2 <- .PC$scores[,2]
+    PC1 <- .PC$scores[,1]
+  })
+})
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Bibliography: 
+
+#Cattell, R.B. (1966) ''The scree test for the number of factors''. Multivariate Behavioural Research, Vol.1(1), PP.245-276.
+
+#Cronin, J.Jr. and Taylor, S.A. (1992) ''Measuring Service Quality: A Re-examination and Extension''. Journal of Marketing, Vol.56(3), PP.55-68.
+
+#Demoulina, N. and Willems,K.B. (2019) ''Servicescape irritants and customer satisfaction: The moderating role of shopping motives and involvement''. Journal of Business Research, Vol.104(1), PP.295-306.
+
+#Field, A., Miles, J. and Field, Z. (2012) ''DISCOVERING STATISTICS USING R'' (1st edition). London: SAGE Publications Ltd.
+
+#Hutcheson, G. (2019) ''APPLIED MULTIVARIATE ANALYSIS: A System of Analysis using R, the R-studio and the R-commander'' (Online). Available at:http://www.research-training.net/index.php?option=com_content&view=article&id=41&Itemid=37 (Last accessed: 24/04/2020).
+
+#Hutcheson, G.D. and Moutinho, L. (1998) ''Measuring Preferred Store Satisfaction Using Consumer Choice Criteria as a Mediating Factor''. Journal of Marketing Management, Vol.14(7), PP.705-720.
+
+#Hutcheson, G.D. and Sofrinou,N. (1999) ''The multivariate social scientist''. London : SAGE Publications Ltd.
+
+#Joliffe, I.T (1986) ''Principal Component Analysis''. New York: Springer.
+
+#Kaiser,K.F. (1970) ''An index fo factorial simplicity''. Psychometrika, Vol.39(1), PP.31-36.
+
+#Kerin, R.A., Jain, A. and Howard, D.J. (1992) '' Store shopping experience and consumer price-quality-value perceptions''.Journal of Retailing, Vol.68(4), PP.376-397.
+
+#Johnson, M. D. and Fornell, C. (1991) "A Framework for Comparing Customer Satisfaction Acrosss Individuals and Product Categories", Journal of Economic Psychology, Vol.12(2), PP.267-287.
+
+# Spies, K., Hesse, F. and Loesch, K. (1997) ''Store atmosphere, mood and purchasing behavior''.International Journal of Research in Marketing, Vol.14(1), PP.1-17.
+
+#Wu, I.L. (2013) ''The antecedents of customer satisfaction and its link to complaint intentions in online shopping: An integration of justice, technology, and trust''. International Journal of Information Management,Volume 33(1), PP.166-176.
+
+#Zhou, L. and Wong, A. (2003) “Consumer impulse buying and in-store stimuli in Chinese supermarkets”. Journal of International Consumer Marketing, Vol.16(2), PP.37-53.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
